@@ -11,6 +11,7 @@
 		}
 		
 		public function clearText($text) {
+			$text = trim($text);
 			$text = preg_replace('/[ ]+/', ' ', $text);
 			$text = str_replace("\r", "", $text);
 			$text = preg_replace('/([\n\?\!\.]+)\s+(?=[\n\?\!\.]+)/', '$1', $text);
@@ -68,26 +69,26 @@
 				}
 			}
 			if ( $maxPercent == 100 && $lastIndex <= $index ) {
-				$simm['index'] = !empty($maxPercentKey) ? $maxPercentKey : (isset($lastIndex) ? $lastIndex : $index);
+				$simm['index'] = $maxPercentKey;
 				$simm['action'] = 'none';
 				$simm['orig_index'] = $maxPercentKey;
 				$simm['orig'] = $arr[$maxPercentKey];
 				$simm['lastIndex'] = $maxPercentKey;
 				$simm['lastAddedIndex'] = null;
 			} elseif ( $maxPercent > 50 && $lastIndex <= $index ) {
-				$simm['index'] = !empty($maxPercentKey) ? $maxPercentKey : (isset($lastIndex) ? $lastIndex : $index);
+				$simm['index'] = $maxPercentKey;
 				$simm['action'] = 'changed';
 				$simm['orig_index'] = $maxPercentKey;
 				$simm['orig'] = $arr[$maxPercentKey];
 				$simm['lastIndex'] = $maxPercentKey;
 				$simm['lastAddedIndex'] = null;
 			} else {
-				$simm['index'] = isset($lastAddedIndex) ? $lastAddedIndex : $index;
+				$simm['index'] = isset($lastAddedIndex) ? $lastAddedIndex : (isset($lastIndex) ? $lastIndex : 0);
 				$simm['action'] = 'added';
 				$simm['orig_index'] = '';
 				$simm['orig'] = '';
 				$simm['lastIndex'] = null;
-				$simm['lastAddedIndex'] = isset($lastAddedIndex) ? $lastAddedIndex : $index;
+				$simm['lastAddedIndex'] = isset($lastAddedIndex) ? $lastAddedIndex : (isset($lastIndex) ? $lastIndex : 0);
 			}
 			$simm['maxPercent'] = $maxPercent;
 			return $simm;
