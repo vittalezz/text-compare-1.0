@@ -52,7 +52,7 @@
 			return $percent;
 		}
 		
-		public function getIndexSimmilarSentencesInArray($text, $arr, $index, $lastIndex, $lastAddedIndex = null) {
+		public function getIndexSimmilarSentencesInArray($text, $arr, $index, $lastIndex = null, $lastOrigIndex = null, $lastAddedIndex = null) {
 			$simm = [];
 			$tempPercentArr = [];
 			foreach ($arr as $key => $value) {
@@ -68,27 +68,31 @@
 					$maxPercentKey = $key;
 				}
 			}
-			if ( $maxPercent == 100 && $lastIndex <= $index ) {
+			$testIndex = isset($lastAddedIndex) ? $lastAddedIndex : (isset($lastOrigIndex) ? $lastOrigIndex : 0);
+			if ( $maxPercent == 100 && $testIndex <= $maxPercentKey ) {
 				$simm['index'] = $maxPercentKey;
 				$simm['action'] = 'none';
 				$simm['orig_index'] = $maxPercentKey;
 				$simm['orig'] = $arr[$maxPercentKey];
-				$simm['lastIndex'] = $maxPercentKey;
+				$simm['lastOrigIndex'] = $maxPercentKey;
+				$simm['lastIndex'] = $index;
 				$simm['lastAddedIndex'] = null;
-			} elseif ( $maxPercent > 50 && $lastIndex <= $index ) {
+			} elseif ( $maxPercent > 50 && $testIndex <= $maxPercentKey ) {
 				$simm['index'] = $maxPercentKey;
 				$simm['action'] = 'changed';
 				$simm['orig_index'] = $maxPercentKey;
 				$simm['orig'] = $arr[$maxPercentKey];
-				$simm['lastIndex'] = $maxPercentKey;
+				$simm['lastOrigIndex'] = $maxPercentKey;
+				$simm['lastIndex'] = $index;
 				$simm['lastAddedIndex'] = null;
 			} else {
-				$simm['index'] = isset($lastAddedIndex) ? $lastAddedIndex : (isset($lastIndex) ? $lastIndex : 0);
+				$simm['index'] = isset($lastAddedIndex) ? $lastAddedIndex : (isset($lastOrigIndex) ? $lastOrigIndex : 0);
 				$simm['action'] = 'added';
-				$simm['orig_index'] = '';
-				$simm['orig'] = '';
-				$simm['lastIndex'] = null;
-				$simm['lastAddedIndex'] = isset($lastAddedIndex) ? $lastAddedIndex : (isset($lastIndex) ? $lastIndex : 0);
+				$simm['orig_index'] = null;
+				$simm['orig'] = null;
+				$simm['lastOrigIndex'] = null;
+				$simm['lastIndex'] = $index;
+				$simm['lastAddedIndex'] = isset($lastAddedIndex) ? $lastAddedIndex : (isset($lastOrigIndex) ? $lastOrigIndex : 0);
 			}
 			$simm['maxPercent'] = $maxPercent;
 			return $simm;
@@ -97,11 +101,12 @@
 		public function sortCompareSentences($arrA, $arrB) {
 			$tempArrA = $arrA;
 			$lastIndex = 0;
+			$lastOrigIndex = null;
 			$lastAddedIndex = null;
 
 			$diffArrB = [];
 			foreach ($arrB as $key => $value) {
-				$simm = $this->getIndexSimmilarSentencesInArray($value, $tempArrA, $key, $lastIndex, $lastAddedIndex);
+				$simm = $this->getIndexSimmilarSentencesInArray($value, $tempArrA, $key, $lastIndex, $lastOrigIndex, $lastAddedIndex);
 				$diffArrB[$key]['index'] = $simm['index'];
 				$diffArrB[$key]['value'] = $value;
 				$diffArrB[$key]['action'] = $simm['action'];
@@ -109,6 +114,7 @@
 				$diffArrB[$key]['orig_index'] = $simm['orig_index'];
 
 				$lastIndex = $simm['lastIndex'];
+				$lastOrigIndex = $simm['lastOrigIndex'];
 				$lastAddedIndex = $simm['lastAddedIndex'];
 			}
 			$delKeys = array_diff(array_column($diffArrB, 'orig_index'), array(''));
@@ -124,13 +130,23 @@
 				$diffArrA[$key]['orig_index'] = $key;
 			}
 			$diffArrAB = array_merge($diffArrB, $diffArrA);
-			usort($diffArrAB, function ($a, $b) {
-						if ($a['index'] == $b['index']) {
-							return 0;
-					}
-					return ($a['index'] < $b['index']) ? -1 : 1;
+			$temp = $diffArrAB;
+			uksort($diffArrAB, function ($a,$b) use ($temp) {
+				if ($a == $b && $temp[$a]['index'] == $temp[$b]['index']) {
+					return 0;
+				} elseif ($a == $b && $temp[$a]['index'] < $temp[$b]['index']) {
+					return -1;
+				} elseif ($a < $b && $temp[$a]['index'] == $temp[$b]['index']) {
+					return 0;
+				} elseif ($a < $b && $temp[$a]['index'] < $temp[$b]['index']) {
+					return -1;
+				} elseif ($a > $b && $temp[$a]['index'] < $temp[$b]['index']) {
+					return -1;
+				} else {
+					return 1;
 				}
-			);
+			});
+			unset($temp);
 			return $diffArrAB;
 		}
 		
